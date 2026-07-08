@@ -34,7 +34,7 @@ mvn test
 ## Tiến độ (lộ trình 8 chặng — xem SPEC.md)
 
 - [x] 1. Skeleton: Spring Boot + React + Docker + Flyway V1
-- [ ] 2. Rubric & taxonomy điều khoản (docs/rubric.md)
+- [x] 2. Rubric & taxonomy điều khoản (docs/rubric.md)
 - [ ] 3. Upload + Gemini Vision đọc hợp đồng
 - [ ] 4. Engine phân tích + verify grounding + tính điểm
 - [ ] 5. Trang kết quả (highlight màu, checklist, câu hỏi gợi ý)
