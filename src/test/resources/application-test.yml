@@ -1,0 +1,23 @@
+# Cấu hình riêng khi chạy TEST (kích hoạt bằng @ActiveProfiles("test")).
+# Dùng H2 in-memory để test chạy nhanh, không cần PostgreSQL thật.
+spring:
+  datasource:
+    # H2 chạy trong bộ nhớ; MODE=PostgreSQL để hành vi gần với Postgres.
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      # Trong test: Hibernate TỰ tạo schema từ entity rồi xóa khi xong.
+      # (Khác production dùng Flyway + validate.)
+      ddl-auto: create-drop
+  # Tắt Flyway trong test vì script V1 viết theo cú pháp PostgreSQL (BIGSERIAL...).
+  flyway:
+    enabled: false
+
+# Giá trị JWT cho môi trường test
+app:
+  jwt:
+    secret: test-secret-key-for-junit-must-be-long-enough-32-bytes-0123456789
+    expiration-ms: 3600000

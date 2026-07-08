@@ -1,0 +1,58 @@
+# ============================================================
+#  Dựng toàn bộ hệ thống bằng 1 lệnh:  docker compose up
+#  Gồm 3 service:
+#    - db       : PostgreSQL
+#    - app      : ứng dụng Spring Boot (REST API)
+#    - frontend : React build, phục vụ qua Nginx + proxy /api -> app
+# ============================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: soattro-db
+    environment:
+      POSTGRES_DB: soattro
+      POSTGRES_USER: soattro
+      POSTGRES_PASSWORD: soattro
+    ports:
+      - "5433:5432"          # 5433 phía máy thật để không đụng Postgres của finance app
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soattro -d soattro"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .
+    container_name: soattro-app
+    depends_on:
+      db:
+        condition: service_healthy   # đợi Postgres "healthy" rồi mới khởi động app
+    environment:
+      # Override giá trị mặc định trong application.yml.
+      # 'db' là tên service ở trên -> trong mạng Docker, app gọi tới host 'db'.
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: soattro
+      DB_USER: soattro
+      DB_PASSWORD: soattro
+      JWT_SECRET: change-me-to-a-long-random-secret-key-at-least-32-bytes
+      # Key Gemini cho pipeline AI (chặng 3+). Lấy từ env máy host; KHÔNG hardcode.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+    ports:
+      - "8081:8080"          # 8081 phía máy thật để không đụng finance app (8080)
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: soattro-frontend
+    depends_on:
+      - app
+    ports:
+      - "3001:80"            # mở giao diện tại http://localhost:3001
+
+volumes:
+  pgdata:
