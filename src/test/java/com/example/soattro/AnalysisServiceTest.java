@@ -1,10 +1,13 @@
 package com.example.soattro;
 
+import com.example.soattro.ai.ClauseAnalyzer;
 import com.example.soattro.ai.ContractExtractor;
 import com.example.soattro.ai.ExtractedClause;
 import com.example.soattro.ai.ExtractionResult;
+import com.example.soattro.ai.RawFinding;
 import com.example.soattro.dto.response.AnalysisResponse;
 import com.example.soattro.entity.ClauseType;
+import com.example.soattro.entity.RiskLevel;
 import com.example.soattro.exception.BadRequestException;
 import com.example.soattro.repository.AnalysisRepository;
 import com.example.soattro.service.AnalysisService;
@@ -41,24 +44,56 @@ class AnalysisServiceTest {
     @MockBean
     private ContractExtractor extractor;
 
+    // ClauseAnalyzer cũng mock: pipeline bước 2 gọi Gemini, không chạy thật trong test.
+    @MockBean
+    private ClauseAnalyzer analyzer;
+
     private MockMultipartFile jpg(String name) {
         return new MockMultipartFile("files", name, "image/jpeg", new byte[]{1, 2, 3});
     }
 
     @Test
-    void createHappyPathSavesCompletedAnalysis() {
+    void createHappyPathRunsFullPipeline() {
         when(extractor.extract(anyList())).thenReturn(new ExtractionResult(true, "", List.of(
                 new ExtractedClause(ClauseType.GIA_DIEN, "Tiền điện 4.000đ/kWh"),
                 new ExtractedClause(ClauseType.DAT_COC, "Cọc 1 tháng tiền nhà"))));
+        // Finding có quote khớp nguyên văn -> qua được grounding
+        when(analyzer.analyze(anyList())).thenReturn(List.of(
+                new RawFinding(ClauseType.GIA_DIEN, RiskLevel.RED, "Tiền điện 4.000đ/kWh",
+                        "Giá điện cao hơn quy định", "Hỏi lại chủ trọ")));
 
         AnalysisResponse response = analysisService.create(List.of(jpg("hopdong.jpg")));
 
         assertEquals("COMPLETED", response.status());
         assertEquals(2, response.clauses().size());
         assertNotNull(response.id());
-        // contract_text ghép nguyên văn -> nguồn đối chiếu grounding chặng 4
+        assertNotNull(response.safetyScore());          // code đã chấm điểm
+        assertNotNull(response.verdictLabel());
         assertTrue(response.contractText().contains("Tiền điện 4.000đ/kWh"));
+        // Finding grounded được lưu + căn cứ luật do code gắn
+        assertEquals(1, response.findings().size());
+        assertEquals("RED", response.findings().get(0).riskLevel());
+        assertNotNull(response.findings().get(0).lawRef());
+        // Checklist gồm 14 loại thiết yếu; HOAN_COC thiếu -> present=false
+        assertEquals(14, response.checklist().size());
+        assertTrue(response.checklist().stream()
+                .anyMatch(c -> c.clauseType().equals("HOAN_COC") && !c.present()));
         assertTrue(analysisRepository.findById(response.id()).isPresent());
+    }
+
+    @Test
+    void hallucinatedFindingIsDroppedByGrounding() {
+        when(extractor.extract(anyList())).thenReturn(new ExtractionResult(true, "", List.of(
+                new ExtractedClause(ClauseType.GIA_DIEN, "Tiền điện 4.000đ/kWh"))));
+        // Quote KHÔNG có trong hợp đồng -> grounding phải loại, không lưu, không trừ điểm
+        when(analyzer.analyze(anyList())).thenReturn(List.of(
+                new RawFinding(ClauseType.DON_PHUONG_CHAM_DUT, RiskLevel.RED, "Chủ nhà đuổi bất cứ lúc nào",
+                        "Điều khoản bịa", null)));
+
+        AnalysisResponse response = analysisService.create(List.of(jpg("hopdong.jpg")));
+
+        assertEquals("COMPLETED", response.status());
+        assertTrue(response.findings().isEmpty());      // finding bịa bị loại
     }
 
     @Test
