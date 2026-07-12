@@ -93,6 +93,16 @@ public class AnalysisService {
         Analysis analysis = analysisRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lượt phân tích " + id));
 
+        // Riêng tư: lượt soát ẩn danh (user=null) công khai để giữ luồng poll không cần token;
+        // lượt đã gắn tài khoản thì CHỈ chủ nhân xem được (tránh đoán id tuần tự đọc hợp đồng người khác).
+        // Trả 404 (không phải 403) để không lộ việc id đó có tồn tại.
+        if (analysis.getUser() != null) {
+            Long currentUserId = currentUserService.getCurrentUser().map(User::getId).orElse(null);
+            if (!analysis.getUser().getId().equals(currentUserId)) {
+                throw new ResourceNotFoundException("Không tìm thấy lượt phân tích " + id);
+            }
+        }
+
         if (analysis.getStatus() != AnalysisStatus.COMPLETED) {
             return AnalysisResponse.basic(analysis);
         }

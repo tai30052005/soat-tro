@@ -167,6 +167,23 @@ class AnalysisServiceTest {
     }
 
     @Test
+    void getRejectsAnotherUsersAnalysis() {
+        // User A tạo lượt soát (gắn tài khoản A)
+        userRepository.save(new com.example.soattro.entity.User("owner@test.local", "hash"));
+        loginAs("owner@test.local");
+        when(extractor.extract(anyList())).thenReturn(new ExtractionResult(true, "", List.of(
+                new ExtractedClause(ClauseType.GIA_DIEN, "Tiền điện 4.000đ/kWh"))));
+        when(analyzer.analyze(anyList())).thenReturn(List.of());
+        AnalysisResponse created = analysisService.create(List.of(jpg("a.jpg")));
+
+        // Người khác (ẩn danh) đoán id -> KHÔNG được đọc hợp đồng của A
+        SecurityContextHolder.clearContext();
+        Long id = created.id();
+        assertThrows(com.example.soattro.exception.ResourceNotFoundException.class,
+                () -> analysisService.get(id));
+    }
+
+    @Test
     void historyRequiresLogin() {
         // Ẩn danh -> 401
         assertThrows(UnauthorizedException.class, () -> analysisService.history());
