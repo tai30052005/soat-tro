@@ -37,7 +37,7 @@ mvn test
 - [x] 2. Rubric & taxonomy điều khoản (docs/rubric.md)
 - [x] 3. Upload + Gemini Vision đọc hợp đồng → phân loại điều khoản (structured output)
 - [x] 4. Engine phân tích + verify grounding + tính điểm
-- [ ] 5. Trang kết quả (highlight màu, checklist, câu hỏi gợi ý)
+- [x] 5. Trang kết quả (highlight màu, checklist, câu hỏi gợi ý)
 - [ ] 6. Async + trạng thái + lịch sử + auth
 - [ ] 7. Hợp đồng mẫu demo + tests + CI
 - [ ] 8. Deploy + README + screenshot
