@@ -48,6 +48,13 @@ public class GlobalExceptionHandler {
                 .body(baseBody(HttpStatus.UNAUTHORIZED, "Email hoặc mật khẩu không đúng"));
     }
 
+    /** Gọi endpoint cần đăng nhập khi chưa đăng nhập -> 401 Unauthorized. */
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<Map<String, Object>> handleUnauthorized(UnauthorizedException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(baseBody(HttpStatus.UNAUTHORIZED, ex.getMessage()));
+    }
+
     /** Không tìm thấy tài nguyên -> 404 Not Found. */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {

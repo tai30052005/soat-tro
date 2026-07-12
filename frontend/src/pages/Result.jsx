@@ -3,26 +3,50 @@ import { useLocation, useParams, Link } from 'react-router-dom'
 import client from '../api/client.js'
 import { RISK_META, scoreTone, buildBlocks, buildQuestions } from '../lib/risk.js'
 
+const PENDING = ['PENDING', 'PROCESSING']
+
 /**
- * Trang kết quả soát hợp đồng (chặng 5).
+ * Trang kết quả soát hợp đồng (chặng 5 + poll bất đồng bộ chặng 6).
  * 4 khối theo SPEC: ① điểm an toàn ② hợp đồng tô màu ③ checklist thiếu ④ câu hỏi hỏi chủ trọ.
  *
- * Dữ liệu: ưu tiên state truyền từ trang upload (có clauses để tô màu); nếu vào thẳng
- * bằng URL (xem lại) thì gọi GET /api/analyses/{id}.
+ * Dữ liệu: ưu tiên state từ trang upload (có clauses để tô màu). Vì pipeline chạy nền,
+ * nếu trạng thái còn PROCESSING thì poll GET /api/analyses/{id} tới khi COMPLETED/FAILED.
  */
 export default function Result() {
   const { id } = useParams()
   const location = useLocation()
-  const [analysis, setAnalysis] = useState(location.state?.analysis || null)
+  const initial = location.state?.analysis || null
+  const [analysis, setAnalysis] = useState(initial)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (analysis) return
-    client
-      .get(`/api/analyses/${id}`)
-      .then((res) => setAnalysis(res.data))
-      .catch(() => setError('Không tải được kết quả. Có thể lượt soát này không tồn tại.'))
-  }, [id, analysis])
+    // Đã có kết quả cuối (COMPLETED/FAILED) truyền sẵn -> khỏi poll.
+    if (initial && !PENDING.includes(initial.status)) return
+
+    let cancelled = false
+    let timer = null
+    const poll = () => {
+      client
+        .get(`/api/analyses/${id}`)
+        .then((res) => {
+          if (cancelled) return
+          setAnalysis(res.data)
+          if (PENDING.includes(res.data.status)) {
+            timer = setTimeout(poll, 2500)   // chưa xong -> hỏi lại sau 2.5s
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setError('Không tải được kết quả. Có thể lượt soát này không tồn tại.')
+        })
+    }
+    poll()
+
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   if (error) {
     return (
@@ -32,8 +56,14 @@ export default function Result() {
       </div>
     )
   }
-  if (!analysis) {
-    return <div className="result-page"><p className="load-msg">Đang tải kết quả…</p></div>
+  if (!analysis || PENDING.includes(analysis.status)) {
+    return (
+      <div className="home loading-screen">
+        <div className="spinner" aria-hidden />
+        <p className="progress-msg">Đang soát hợp đồng…</p>
+        <p className="progress-sub">Đang đọc và đối chiếu từng điều khoản, thường mất 20–30 giây.</p>
+      </div>
+    )
   }
   if (analysis.status === 'FAILED') {
     return (

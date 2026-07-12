@@ -1,6 +1,7 @@
 package com.example.soattro.controller;
 
 import com.example.soattro.dto.response.AnalysisResponse;
+import com.example.soattro.dto.response.AnalysisSummary;
 import com.example.soattro.service.AnalysisService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -39,9 +40,15 @@ public class AnalysisController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /** GET /api/analyses/{id} — xem lại một lượt soát (chặng 6 dùng để poll trạng thái). */
+    /** GET /api/analyses/{id} — xem lại một lượt soát (frontend poll trạng thái). */
     @GetMapping("/{id}")
     public AnalysisResponse get(@PathVariable Long id) {
         return analysisService.get(id);
+    }
+
+    /** GET /api/analyses — lịch sử soát của user đang đăng nhập (ẩn danh -> 401). */
+    @GetMapping
+    public List<AnalysisSummary> history() {
+        return analysisService.history();
     }
 }

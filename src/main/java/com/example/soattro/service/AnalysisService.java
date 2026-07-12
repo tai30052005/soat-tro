@@ -1,21 +1,16 @@
 package com.example.soattro.service;
 
-import com.example.soattro.ai.ClauseAnalyzer;
 import com.example.soattro.ai.ContractExtractor;
-import com.example.soattro.ai.ExtractedClause;
-import com.example.soattro.ai.ExtractionResult;
-import com.example.soattro.ai.RawFinding;
 import com.example.soattro.dto.response.AnalysisResponse;
+import com.example.soattro.dto.response.AnalysisSummary;
 import com.example.soattro.dto.response.ChecklistItemDto;
-import com.example.soattro.dto.response.ClauseDto;
 import com.example.soattro.dto.response.FindingDto;
 import com.example.soattro.entity.Analysis;
 import com.example.soattro.entity.AnalysisStatus;
-import com.example.soattro.entity.ChecklistItem;
-import com.example.soattro.entity.ClauseType;
-import com.example.soattro.entity.Finding;
+import com.example.soattro.entity.User;
 import com.example.soattro.exception.BadRequestException;
 import com.example.soattro.exception.ResourceNotFoundException;
+import com.example.soattro.exception.UnauthorizedException;
 import com.example.soattro.repository.AnalysisRepository;
 import com.example.soattro.repository.ChecklistItemRepository;
 import com.example.soattro.repository.FindingRepository;
@@ -25,21 +20,18 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
- * Nghiệp vụ soát hợp đồng — điều phối pipeline 3 bước (SPEC mục 4):
- *   [1] ContractExtractor  : ảnh/PDF -> điều khoản đã phân loại (Gemini Vision).
- *   [2] ClauseAnalyzer     : điều khoản -> findings rủi ro (Gemini).
- *   [3] code tất định      : GroundingVerifier -> ChecklistBuilder -> ScoreCalculator,
- *                            LawReferences gắn căn cứ luật.
+ * Điều phối nghiệp vụ soát hợp đồng (chặng 6 — bất đồng bộ).
  *
- * Chạy ĐỒNG BỘ (chặng 6 sẽ chuyển @Async). Privacy-by-design: bytes ảnh chỉ sống
- * trong request, không ghi đĩa/DB.
+ *  - create(): validate + đọc bytes ảnh (trong luồng request) -> lưu bản ghi PROCESSING
+ *    -> giao pipeline cho AnalysisProcessor chạy NỀN -> trả về ngay.
+ *  - get():    frontend poll để lấy trạng thái/kết quả.
+ *  - history(): danh sách lượt soát của user đang đăng nhập.
+ *
+ * Privacy-by-design: bytes ảnh chỉ sống trong request + luồng nền, không ghi đĩa/DB.
  */
 @Service
 public class AnalysisService {
@@ -49,33 +41,21 @@ public class AnalysisService {
     private static final int MAX_FILES = 10;
     private static final long MAX_TOTAL_BYTES = 12L * 1024 * 1024;
 
-    private final ContractExtractor extractor;
-    private final ClauseAnalyzer analyzer;
-    private final GroundingVerifier groundingVerifier;
-    private final ChecklistBuilder checklistBuilder;
+    private final AnalysisProcessor processor;
     private final ScoreCalculator scoreCalculator;
-    private final LawReferences lawReferences;
     private final AnalysisRepository analysisRepository;
     private final FindingRepository findingRepository;
     private final ChecklistItemRepository checklistItemRepository;
     private final CurrentUserService currentUserService;
 
-    public AnalysisService(ContractExtractor extractor,
-                           ClauseAnalyzer analyzer,
-                           GroundingVerifier groundingVerifier,
-                           ChecklistBuilder checklistBuilder,
+    public AnalysisService(AnalysisProcessor processor,
                            ScoreCalculator scoreCalculator,
-                           LawReferences lawReferences,
                            AnalysisRepository analysisRepository,
                            FindingRepository findingRepository,
                            ChecklistItemRepository checklistItemRepository,
                            CurrentUserService currentUserService) {
-        this.extractor = extractor;
-        this.analyzer = analyzer;
-        this.groundingVerifier = groundingVerifier;
-        this.checklistBuilder = checklistBuilder;
+        this.processor = processor;
         this.scoreCalculator = scoreCalculator;
-        this.lawReferences = lawReferences;
         this.analysisRepository = analysisRepository;
         this.findingRepository = findingRepository;
         this.checklistItemRepository = checklistItemRepository;
@@ -83,11 +63,8 @@ public class AnalysisService {
     }
 
     /**
-     * POST /api/analyses: validate -> pipeline 3 bước -> lưu -> trả kết quả đầy đủ.
-     *
-     * KHÔNG @Transactional: nếu bọc chung transaction, khi AI ném lỗi thì bản ghi
-     * FAILED (ghi trong catch) cũng bị rollback -> mất dấu vết. Mỗi save commit ngay;
-     * lỗi AI xảy ra TRƯỚC khi ghi finding/checklist nào nên không sợ dữ liệu ghi dở.
+     * POST /api/analyses: validate + đọc bytes -> lưu PROCESSING -> chạy nền -> trả ngay.
+     * Có token thì gắn lượt soát vào user (để xem lịch sử); ẩn danh thì user = null.
      */
     public AnalysisResponse create(List<MultipartFile> files) {
         List<ContractExtractor.InputFile> inputs = validateAndRead(files);
@@ -96,63 +73,13 @@ public class AnalysisService {
         analysis.setStatus(AnalysisStatus.PROCESSING);
         analysisRepository.save(analysis);
 
-        try {
-            // ---- Bước 1: bóc tách điều khoản ----
-            ExtractionResult extraction = extractor.extract(inputs);
-            if (!extraction.readable()) {
-                analysis.setStatus(AnalysisStatus.FAILED);
-                analysis.setErrorMessage(extraction.reason());
-                analysisRepository.save(analysis);
-                return AnalysisResponse.basic(analysis);
-            }
-            List<ExtractedClause> clauses = extraction.clauses();
-            String contractText = clauses.stream()
-                    .map(ExtractedClause::text)
-                    .collect(Collectors.joining("\n\n"));
-            analysis.setContractText(contractText);
+        // Giao cho luồng nền — đọc bytes phải xong TRƯỚC (MultipartFile hết hiệu lực khi request kết thúc).
+        processor.process(analysis.getId(), inputs);
 
-            // ---- Bước 2: phân tích rủi ro ----
-            List<RawFinding> rawFindings = analyzer.analyze(clauses);
-
-            // ---- Bước 3a: verify grounding (loại finding bịa) ----
-            List<RawFinding> grounded = groundingVerifier.verify(contractText, rawFindings);
-
-            // ---- Bước 3b: checklist thiếu (đếm slot taxonomy trống) ----
-            Set<ClauseType> presentTypes = clauses.stream()
-                    .map(ExtractedClause::clauseType)
-                    .collect(Collectors.toCollection(() -> EnumSet.noneOf(ClauseType.class)));
-            Map<ClauseType, Boolean> checklist = checklistBuilder.build(presentTypes);
-            List<ClauseType> missingEssential = checklist.entrySet().stream()
-                    .filter(e -> !e.getValue())
-                    .map(Map.Entry::getKey)
-                    .toList();
-
-            // ---- Bước 3c: chấm điểm tất định ----
-            ScoreResult score = scoreCalculator.calculate(grounded, missingEssential);
-
-            // ---- Lưu findings + checklist + điểm ----
-            List<Finding> savedFindings = persistFindings(analysis, grounded);
-            persistChecklist(analysis, checklist);
-            analysis.setSafetyScore(score.score());
-            analysis.setStatus(AnalysisStatus.COMPLETED);
-            analysisRepository.save(analysis);
-
-            return new AnalysisResponse(
-                    analysis.getId(), analysis.getStatus().name(), score.score(),
-                    score.verdictLabel(), score.summary(),
-                    contractText, null, analysis.getCreatedAt(),
-                    clauses.stream().map(ClauseDto::from).toList(),
-                    savedFindings.stream().map(FindingDto::from).toList(),
-                    toChecklistDtos(checklist));
-        } catch (RuntimeException e) {
-            analysis.setStatus(AnalysisStatus.FAILED);
-            analysis.setErrorMessage(e.getMessage());
-            analysisRepository.save(analysis);
-            throw e;
-        }
+        return AnalysisResponse.basic(analysis);   // status = PROCESSING, frontend sẽ poll
     }
 
-    /** GET /api/analyses/{id} — nạp lại kết quả đã lưu (findings + checklist + điểm). */
+    /** GET /api/analyses/{id} — poll trạng thái; xong thì nạp findings + checklist + điểm. */
     @Transactional(readOnly = true)
     public AnalysisResponse get(Long id) {
         Analysis analysis = analysisRepository.findById(id)
@@ -174,26 +101,18 @@ public class AnalysisService {
                 List.of(), findings, checklist);
     }
 
-    private List<Finding> persistFindings(Analysis analysis, List<RawFinding> grounded) {
-        List<Finding> entities = new ArrayList<>();
-        for (RawFinding f : grounded) {
-            entities.add(new Finding(analysis, f.clauseType(), f.riskLevel(),
-                    f.quote(), f.explanation(), f.suggestion(),
-                    lawReferences.forType(f.clauseType())));   // căn cứ luật do CODE gắn
-        }
-        return findingRepository.saveAll(entities);
-    }
+    /** GET /api/analyses — lịch sử soát của user đang đăng nhập (bắt buộc đăng nhập). */
+    @Transactional(readOnly = true)
+    public List<AnalysisSummary> history() {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new UnauthorizedException("Hãy đăng nhập để xem lịch sử soát."));
 
-    private void persistChecklist(Analysis analysis, Map<ClauseType, Boolean> checklist) {
-        List<ChecklistItem> items = checklist.entrySet().stream()
-                .map(e -> new ChecklistItem(analysis, e.getKey(), e.getValue()))
-                .toList();
-        checklistItemRepository.saveAll(items);
-    }
-
-    private List<ChecklistItemDto> toChecklistDtos(Map<ClauseType, Boolean> checklist) {
-        return checklist.entrySet().stream()
-                .map(e -> ChecklistItemDto.of(e.getKey(), e.getValue()))
+        return analysisRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
+                .map(a -> {
+                    String label = a.getSafetyScore() != null
+                            ? scoreCalculator.labelFor(a.getSafetyScore()) : null;
+                    return AnalysisSummary.from(a, label);
+                })
                 .toList();
     }
 
