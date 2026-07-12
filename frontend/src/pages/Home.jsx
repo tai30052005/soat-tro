@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import client from '../api/client.js'
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf'
@@ -127,6 +127,10 @@ export default function Home() {
         <button className="btn-primary big" onClick={submit} disabled={files.length === 0}>
           Soát hợp đồng
         </button>
+
+        <p className="try-sample">
+          Chưa có hợp đồng sẵn? <Link to="/demo">Thử với hợp đồng mẫu →</Link>
+        </p>
       </header>
 
       <footer className="disclaimer">

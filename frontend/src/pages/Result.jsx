@@ -80,7 +80,7 @@ export default function Result() {
   return <ResultView analysis={analysis} />
 }
 
-function ResultView({ analysis }) {
+export function ResultView({ analysis, demo = false }) {
   const blocks = useMemo(() => buildBlocks(analysis), [analysis])
   const questions = useMemo(() => buildQuestions(analysis), [analysis])
   const missing = (analysis.checklist || []).filter((c) => !c.present)
@@ -92,6 +92,12 @@ function ResultView({ analysis }) {
       <div className="result-top">
         <Link className="btn-ghost" to="/">← Soát hợp đồng khác</Link>
       </div>
+
+      {demo && (
+        <div className="demo-banner">
+          👀 Đây là <strong>hợp đồng mẫu</strong> để bạn xem thử kết quả. Bấm “Soát hợp đồng khác” để tải hợp đồng của bạn.
+        </div>
+      )}
 
       {/* ① Điểm an toàn */}
       <section className={`score-card ${tone}`}>

@@ -43,6 +43,7 @@ public class AnalysisService {
 
     private final AnalysisProcessor processor;
     private final ScoreCalculator scoreCalculator;
+    private final SampleContractProvider sampleContractProvider;
     private final AnalysisRepository analysisRepository;
     private final FindingRepository findingRepository;
     private final ChecklistItemRepository checklistItemRepository;
@@ -50,16 +51,23 @@ public class AnalysisService {
 
     public AnalysisService(AnalysisProcessor processor,
                            ScoreCalculator scoreCalculator,
+                           SampleContractProvider sampleContractProvider,
                            AnalysisRepository analysisRepository,
                            FindingRepository findingRepository,
                            ChecklistItemRepository checklistItemRepository,
                            CurrentUserService currentUserService) {
         this.processor = processor;
         this.scoreCalculator = scoreCalculator;
+        this.sampleContractProvider = sampleContractProvider;
         this.analysisRepository = analysisRepository;
         this.findingRepository = findingRepository;
         this.checklistItemRepository = checklistItemRepository;
         this.currentUserService = currentUserService;
+    }
+
+    /** GET /api/analyses/sample — kết quả demo dựng sẵn, không gọi Gemini, không đụng DB. */
+    public AnalysisResponse sample() {
+        return sampleContractProvider.build();
     }
 
     /**

@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import Nav from './components/Nav.jsx'
 import Home from './pages/Home.jsx'
 import Result from './pages/Result.jsx'
+import Demo from './pages/Demo.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import History from './pages/History.jsx'
@@ -20,6 +21,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/analyses/:id" element={<Result />} />
+        <Route path="/demo" element={<Demo />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/history" element={<History />} />

@@ -1,7 +1,11 @@
 # 🏠 Soát Trọ — AI soát hợp đồng thuê trọ
 
+[![CI](https://github.com/tai30052005/soat-tro/actions/workflows/ci.yml/badge.svg)](https://github.com/tai30052005/soat-tro/actions/workflows/ci.yml)
+
 > Chụp/upload hợp đồng thuê trọ → 30 giây sau biết: điều khoản nào rủi ro (🔴🟡🟢),
 > hợp đồng **thiếu** điều khoản gì, và cần hỏi lại chủ trọ câu gì — không cần gõ một chữ nào.
+>
+> Chưa có hợp đồng? Bấm **“Thử với hợp đồng mẫu”** ở trang chủ để xem kết quả demo ngay (không cần API key).
 
 ⚠️ Soát Trọ là **công cụ tham khảo, không phải tư vấn pháp lý**.
 
@@ -39,5 +43,5 @@ mvn test
 - [x] 4. Engine phân tích + verify grounding + tính điểm
 - [x] 5. Trang kết quả (highlight màu, checklist, câu hỏi gợi ý)
 - [x] 6. Async + trạng thái + lịch sử + auth
-- [ ] 7. Hợp đồng mẫu demo + tests + CI
+- [x] 7. Hợp đồng mẫu demo + tests + CI
 - [ ] 8. Deploy + README + screenshot

@@ -40,6 +40,12 @@ public class AnalysisController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /** GET /api/analyses/sample — hợp đồng mẫu demo (khai báo TRƯỚC /{id} để không bị nuốt). */
+    @GetMapping("/sample")
+    public AnalysisResponse sample() {
+        return analysisService.sample();
+    }
+
     /** GET /api/analyses/{id} — xem lại một lượt soát (frontend poll trạng thái). */
     @GetMapping("/{id}")
     public AnalysisResponse get(@PathVariable Long id) {
