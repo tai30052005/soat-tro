@@ -38,7 +38,10 @@ export default function Register() {
     <div className="auth-wrap">
       <form className="auth-card" onSubmit={submit}>
         <h1>Đăng ký</h1>
-        <p className="auth-sub">Tạo tài khoản để lưu lịch sử các lần soát hợp đồng.</p>
+        <p className="auth-sub">
+          Tạo tài khoản để lưu lịch sử các lần soát.
+          <br />Không bắt buộc — bạn vẫn soát hợp đồng bình thường khi chưa đăng nhập.
+        </p>
 
         <label>Email
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
