@@ -46,15 +46,16 @@ app:
   # Danh sách origin frontend được phép gọi API (ngăn cách bởi dấu phẩy).
   # Khi DEPLOY, đặt biến môi trường CORS_ALLOWED_ORIGINS = domain frontend.
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173}
 
   # ===== AI (Google Gemini) — đọc & phân tích hợp đồng =====
   # Để trống api-key thì tính năng tự tắt. Lấy key miễn phí ở https://aistudio.google.com
-  # — KHÔNG commit key vào repo. Model 2.5-flash: cần khả năng vision đọc chữ
-  # tiếng Việt trong ảnh chụp (không dùng 2.0-flash vì free tier limit 0).
+  # — KHÔNG commit key vào repo. Cần model có khả năng vision đọc chữ tiếng Việt.
+  # Lưu ý (2026-07): họ gemini-2.5-* trả 404 với API key TẠO MỚI; 2.0-flash quota 0.
+  # -> mặc định gemini-3-flash-preview (free, vision tốt). Đổi bằng env GEMINI_MODEL.
   ai:
     api-key: ${GEMINI_API_KEY:}
-    model: ${GEMINI_MODEL:gemini-2.5-flash}
+    model: ${GEMINI_MODEL:gemini-3-flash-preview}
 
 # ===== Swagger / OpenAPI =====
 springdoc:

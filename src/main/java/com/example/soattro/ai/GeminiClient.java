@@ -29,7 +29,7 @@ public class GeminiClient {
     private final boolean enabled;
 
     public GeminiClient(@Value("${app.ai.api-key:}") String apiKey,
-                        @Value("${app.ai.model:gemini-2.5-flash}") String model) {
+                        @Value("${app.ai.model:gemini-3-flash-preview}") String model) {
         this.apiKey = apiKey;
         this.model = model;
         this.enabled = apiKey != null && !apiKey.isBlank();
