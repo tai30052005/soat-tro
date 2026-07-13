@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { isLoggedIn, getEmail, clearAuth } from '../lib/auth.js'
+import Logo from './Logo.jsx'
 
 /**
  * Thanh điều hướng trên cùng (chặng 6): logo về trang chủ + trạng thái đăng nhập.
@@ -27,7 +28,10 @@ export default function Nav() {
 
   return (
     <nav className="nav">
-      <Link to="/" className="nav-brand">🏠 Soát Trọ</Link>
+      <Link to="/" className="nav-brand">
+        <Logo size={26} />
+        <span>Soát <span className="brand-tro">Trọ</span></span>
+      </Link>
       <div className="nav-links">
         {logged ? (
           <>
@@ -37,8 +41,11 @@ export default function Nav() {
           </>
         ) : (
           <>
-            <Link to="/login" className="nav-link">Đăng nhập</Link>
-            <Link to="/register" className="nav-link primary">Đăng ký</Link>
+            <span className="nav-hint">Đăng nhập để lưu lịch sử soát (không bắt buộc)</span>
+            <Link to="/login" className="nav-link"
+                  title="Không bắt buộc — chỉ để lưu và xem lại lịch sử các lần soát">Đăng nhập</Link>
+            <Link to="/register" className="nav-link primary"
+                  title="Không bắt buộc — chỉ để lưu và xem lại lịch sử các lần soát">Đăng ký</Link>
           </>
         )}
       </div>

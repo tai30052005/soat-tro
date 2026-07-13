@@ -1,27 +1,18 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import client from '../api/client.js'
+import ScanLoader from '../components/ScanLoader.jsx'
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf'
 const MAX_FILES = 10
 
-// Thông điệp xoay vòng ở màn hình chờ (~20–30s) để người dùng biết máy đang làm gì.
-const PROGRESS_MSGS = [
-  'Đang đọc hợp đồng…',
-  'Đang bóc tách từng điều khoản…',
-  'Đang đối chiếu với 16 điểm kiểm tra…',
-  'Đang rà các điều khoản còn thiếu…',
-  'Sắp xong rồi…',
-]
-
 /**
- * Trang chủ + upload hợp đồng (chặng 5). Không bắt đăng nhập.
- * Gửi multipart tới POST /api/analyses rồi chuyển sang trang kết quả.
+ * Trang chủ + upload hợp đồng (chặng 5, làm mới theo concept "soi kỹ từng dòng").
+ * Không bắt đăng nhập. Gửi multipart tới POST /api/analyses rồi chuyển sang trang kết quả.
  */
 export default function Home() {
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(false)
-  const [msgIdx, setMsgIdx] = useState(0)
   const [error, setError] = useState(null)
   const inputRef = useRef(null)
   const navigate = useNavigate()
@@ -45,17 +36,13 @@ export default function Home() {
     setError(null)
     setLoading(true)
 
-    // Xoay thông điệp chờ.
-    const timer = setInterval(
-      () => setMsgIdx((i) => (i + 1) % PROGRESS_MSGS.length),
-      3500,
-    )
-
     try {
       const form = new FormData()
       files.forEach((f) => form.append('files', f))
       const res = await client.post('/api/analyses', form)
-      navigate(`/analyses/${res.data.id}`, { state: { analysis: res.data } })
+      // Mang theo file để trang kết quả xem lại ảnh gốc (chỉ trong trình duyệt,
+      // KHÔNG gửi/lưu ở server — giữ đúng nguyên tắc riêng tư).
+      navigate(`/analyses/${res.data.id}`, { state: { analysis: res.data, files } })
     } catch (err) {
       const msg =
         err.response?.data?.message ||
@@ -63,7 +50,6 @@ export default function Home() {
         'Có lỗi khi soát hợp đồng. Hãy thử lại sau ít phút.'
       setError(msg)
     } finally {
-      clearInterval(timer)
       setLoading(false)
     }
   }
@@ -71,9 +57,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="home loading-screen">
-        <div className="spinner" aria-hidden />
-        <p className="progress-msg">{PROGRESS_MSGS[msgIdx]}</p>
-        <p className="progress-sub">Thường mất khoảng 20–30 giây, đừng đóng trang nhé.</p>
+        <ScanLoader sub="Thường mất khoảng 20–30 giây, đừng đóng trang nhé." />
       </div>
     )
   }
@@ -81,7 +65,11 @@ export default function Home() {
   return (
     <div className="home">
       <header className="hero">
-        <h1>🏠 Soát Trọ</h1>
+        <h1>
+          Ký hợp đồng trọ?
+          <br />
+          <span className="hl">Soát trước đã.</span>
+        </h1>
         <p className="tagline">
           Chụp hợp đồng thuê trọ — 30 giây sau biết điều khoản nào rủi ro,
           hợp đồng <strong>thiếu</strong> gì, và cần hỏi lại chủ trọ câu gì.
@@ -124,18 +112,35 @@ export default function Home() {
 
         {error && <p className="form-error">{error}</p>}
 
-        <button className="btn-primary big" onClick={submit} disabled={files.length === 0}>
-          Soát hợp đồng
-        </button>
-
-        <p className="try-sample">
-          Chưa có hợp đồng sẵn? <Link to="/demo">Thử với hợp đồng mẫu →</Link>
-        </p>
+        <div className="cta-row">
+          <button className="btn-primary big" onClick={submit} disabled={files.length === 0}>
+            Soát hợp đồng
+          </button>
+          <Link className="btn-secondary big" to="/demo">
+            👀 Xem thử với hợp đồng mẫu
+          </Link>
+        </div>
       </header>
 
-      <footer className="disclaimer">
-        Soát Trọ là công cụ tham khảo, không phải tư vấn pháp lý.
-      </footer>
+      <section className="steps" aria-label="Cách hoạt động">
+        <div className="step">
+          <div className="step-ico" aria-hidden="true">📷</div>
+          <h3>Chụp hợp đồng</h3>
+          <p>Ảnh điện thoại hoặc PDF, nhiều trang cũng được</p>
+        </div>
+        <div className="step">
+          <div className="step-ico" aria-hidden="true">🤖</div>
+          <h3>AI đối chiếu 14 điểm</h3>
+          <p>Giá điện nước, tiền cọc, quyền đuổi, tăng giá…</p>
+        </div>
+        <div className="step">
+          <div className="step-ico" aria-hidden="true">✅</div>
+          <h3>Nhận điểm + câu hỏi</h3>
+          <p>Điểm an toàn, mục còn thiếu, câu hỏi cầm đi hỏi chủ trọ</p>
+        </div>
+      </section>
+
+      <footer className="footband">⚖️ Soát Trọ là công cụ tham khảo, không phải tư vấn pháp lý.</footer>
     </div>
   )
 }

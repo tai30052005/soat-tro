@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useParams, Link } from 'react-router-dom'
 import client from '../api/client.js'
+import ScanLoader from '../components/ScanLoader.jsx'
 import { RISK_META, scoreTone, buildBlocks, buildQuestions } from '../lib/risk.js'
+
+// Chu vi vòng gauge (r = 50): dùng để tô cung tròn theo % điểm an toàn.
+const GAUGE_CIRC = 2 * Math.PI * 50
 
 const PENDING = ['PENDING', 'PROCESSING']
 
@@ -16,6 +20,7 @@ export default function Result() {
   const { id } = useParams()
   const location = useLocation()
   const initial = location.state?.analysis || null
+  const uploaded = location.state?.files || null   // File gốc từ trang upload (nếu có)
   const [analysis, setAnalysis] = useState(initial)
   const [error, setError] = useState(null)
 
@@ -59,9 +64,7 @@ export default function Result() {
   if (!analysis || PENDING.includes(analysis.status)) {
     return (
       <div className="home loading-screen">
-        <div className="spinner" aria-hidden />
-        <p className="progress-msg">Đang soát hợp đồng…</p>
-        <p className="progress-sub">Đang đọc và đối chiếu từng điều khoản, thường mất 20–30 giây.</p>
+        <ScanLoader sub="Đang đọc và đối chiếu từng điều khoản, thường mất 20–30 giây." />
       </div>
     )
   }
@@ -77,15 +80,32 @@ export default function Result() {
     )
   }
 
-  return <ResultView analysis={analysis} />
+  return <ResultView analysis={analysis} files={uploaded} />
 }
 
-export function ResultView({ analysis, demo = false }) {
+export function ResultView({ analysis, demo = false, files = null }) {
   const blocks = useMemo(() => buildBlocks(analysis), [analysis])
   const questions = useMemo(() => buildQuestions(analysis), [analysis])
   const missing = (analysis.checklist || []).filter((c) => !c.present)
   const present = (analysis.checklist || []).filter((c) => c.present)
   const tone = scoreTone(analysis.safetyScore)
+
+  // Số liệu cho dòng badge tổng hợp dưới verdict.
+  const redCount = (analysis.findings || []).filter((f) => f.riskLevel === 'RED').length
+  const yellowCount = (analysis.findings || []).filter((f) => f.riskLevel === 'YELLOW').length
+  const gaugeDash = analysis.safetyScore != null
+    ? (analysis.safetyScore / 100) * GAUGE_CIRC
+    : 0
+
+  // Ảnh gốc để xem lại — dựng URL tạm ngay trong trình duyệt, KHÔNG tải lên server.
+  // Chỉ ảnh (PDF không xem trước được ở đây). Thu hồi URL khi rời trang để không rò bộ nhớ.
+  const uploads = useMemo(() => {
+    if (!files || files.length === 0) return []
+    return Array.from(files)
+      .filter((f) => f.type && f.type.startsWith('image/'))
+      .map((f) => ({ name: f.name, url: URL.createObjectURL(f) }))
+  }, [files])
+  useEffect(() => () => uploads.forEach((u) => URL.revokeObjectURL(u.url)), [uploads])
 
   return (
     <div className="result-page">
@@ -99,15 +119,34 @@ export function ResultView({ analysis, demo = false }) {
         </div>
       )}
 
-      {/* ① Điểm an toàn */}
+      {/* ① Điểm an toàn — vòng gauge tô cung theo % điểm */}
       <section className={`score-card ${tone}`}>
-        <div className="score-ring">
-          <span className="score-num">{analysis.safetyScore ?? '—'}</span>
-          <span className="score-den">/100</span>
+        <div className="score-gauge">
+          <svg viewBox="0 0 118 118" aria-hidden="true">
+            <circle className="gauge-track" cx="59" cy="59" r="50" />
+            {gaugeDash > 0 && (
+              <circle
+                className="gauge-arc"
+                cx="59" cy="59" r="50"
+                strokeDasharray={`${gaugeDash.toFixed(1)} ${GAUGE_CIRC.toFixed(1)}`}
+              />
+            )}
+          </svg>
+          <div className="gauge-val">
+            <span className="score-num">{analysis.safetyScore ?? '—'}</span>
+            <span className="score-den">/100</span>
+          </div>
         </div>
         <div className="score-verdict">
           <h1>{analysis.verdictLabel || 'Kết quả soát hợp đồng'}</h1>
           {analysis.summary && <p className="score-summary">{analysis.summary}</p>}
+          {(redCount > 0 || yellowCount > 0 || missing.length > 0) && (
+            <div className="score-badges">
+              {redCount > 0 && <span className="badge badge-red">{redCount} 🔴 nghiêm trọng</span>}
+              {yellowCount > 0 && <span className="badge badge-yellow">{yellowCount} 🟡 cần hỏi lại</span>}
+              {missing.length > 0 && <span className="badge badge-mute">✗ thiếu {missing.length} mục thiết yếu</span>}
+            </div>
+          )}
           <p className="disclaimer-inline">
             ⚠️ Soát Trọ là công cụ tham khảo, không phải tư vấn pháp lý.
           </p>
@@ -118,11 +157,23 @@ export function ResultView({ analysis, demo = false }) {
         {/* ② Hợp đồng tô màu */}
         <section className="panel contract-panel">
           <h2>Điều khoản trong hợp đồng</h2>
+          {uploads.length > 0 && (
+            <details className="uploaded-images">
+              <summary>📷 Ảnh hợp đồng bạn đã tải ({uploads.length}) — bấm để xem</summary>
+              <div className="img-strip">
+                {uploads.map((u, i) => (
+                  <a key={i} href={u.url} target="_blank" rel="noreferrer" title="Bấm để xem ảnh to">
+                    <img src={u.url} alt={u.name} loading="lazy" />
+                  </a>
+                ))}
+              </div>
+            </details>
+          )}
           <p className="panel-hint">Bấm vào điều khoản có màu để xem giải thích và căn cứ.</p>
           <div className="clause-list">
             {blocks.length === 0 && <p className="empty">Không có nội dung điều khoản.</p>}
             {blocks.map((b, i) => (
-              <ClauseBlock key={i} block={b} />
+              <ClauseBlock key={i} block={b} index={i} />
             ))}
           </div>
         </section>
@@ -160,12 +211,16 @@ export function ResultView({ analysis, demo = false }) {
   )
 }
 
-function ClauseBlock({ block }) {
+function ClauseBlock({ block, index = 0 }) {
   const [open, setOpen] = useState(false)
   const meta = RISK_META[block.risk] || RISK_META.NONE
   const hasDetail = block.findings.length > 0
+  // Reveal "đèn quét tới đâu hiện tới đó": các block hiện lần lượt, delay tối đa ~1.2s.
   return (
-    <div className={`clause ${meta.className} ${open ? 'open' : ''}`}>
+    <div
+      className={`clause reveal ${meta.className} ${open ? 'open' : ''}`}
+      style={{ animationDelay: `${Math.min(index, 10) * 0.12}s` }}
+    >
       <button
         className="clause-head"
         onClick={() => hasDetail && setOpen((o) => !o)}
