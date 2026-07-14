@@ -1,6 +1,7 @@
 /* Hallmark · redesign(home) · macrostructure: Asymmetric Hero (left-bias) · tone: tin cậy/editorial-warm
- * type: Fraunces (display) + Inter (body) · anchor hue: teal (~200°) · pre-emit critique: P5 H4 E4 S4 R4 V4
- * scope: trang chủ + hệ type toàn app; giữ nguyên trang kết quả/loader/nav. */
+ * Hallmark · redesign(result) · macrostructure: Report/Verdict Document · giữ theme app (teal · Fraunces+Inter · màu rủi ro)
+ * type: Fraunces (display) + Inter (body) · anchor hue: teal (~200°) · pre-emit critique: P5 H5 E5 S4 R5 V5
+ * scope: trang chủ + trang kết quả + hệ type toàn app; giữ nguyên loader/nav. */
 /* Soát Trọ — UX chặng 5. Bảng màu ấm, tập trung vào trang kết quả có cấu trúc. */
 :root {
   --ink: #1f2937;
@@ -603,33 +604,25 @@ h1, h2, h3 {
   padding: 3rem 0;
 }
 
-/* ① Điểm an toàn */
+/* ① Verdict masthead — đầu "bản báo cáo", không phải thẻ nổi.
+   Rủi ro thể hiện bằng đường kẻ accent trên đỉnh + số/kim tô màu, không nền gradient. */
 .score-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 1.5rem;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-left: 6px solid var(--muted);
-  border-radius: 16px;
-  padding: 1.5rem 1.8rem;
-  box-shadow: var(--shadow);
-  margin-bottom: 1.5rem;
+  gap: 1.2rem 2rem;
+  padding: 1.5rem 0 1.7rem;
+  margin-bottom: 2rem;
+  border-top: 3px solid var(--muted);
+  border-bottom: 1px solid var(--line);
 }
+.score-verdict { order: 1; }
+.score-gauge { order: 2; }
 
-/* Thẻ điểm nhuốm nhẹ màu theo mức rủi ro */
-.score-card.risk-red {
-  border-left-color: var(--red);
-  background: linear-gradient(135deg, var(--red-bg) 0%, var(--card) 60%);
-}
-.score-card.risk-yellow {
-  border-left-color: var(--yellow);
-  background: linear-gradient(135deg, var(--yellow-bg) 0%, var(--card) 60%);
-}
-.score-card.risk-green {
-  border-left-color: var(--green);
-  background: linear-gradient(135deg, var(--green-bg) 0%, var(--card) 60%);
-}
+/* Đường kẻ đỉnh masthead đổi màu theo mức rủi ro */
+.score-card.risk-red { border-top-color: var(--red); }
+.score-card.risk-yellow { border-top-color: var(--yellow); }
+.score-card.risk-green { border-top-color: var(--green); }
 
 /* Vòng gauge SVG: cung tròn tô theo % điểm an toàn */
 .score-gauge {
@@ -723,8 +716,10 @@ h1, h2, h3 {
 }
 
 .score-verdict h1 {
-  font-size: 1.5rem;
-  margin: 0 0 0.35rem;
+  font-size: clamp(1.6rem, 3.4vw, 2.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.4rem;
 }
 
 .score-summary {
@@ -754,17 +749,25 @@ h1, h2, h3 {
   top: 4.3rem; /* nav 3.5rem + đệm */
 }
 
+/* Panels đọc như mục trong bản báo cáo: viền hairline, KHÔNG đổ bóng thẻ nổi. */
 .panel {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 1.3rem 1.4rem;
-  box-shadow: var(--shadow);
 }
 
 .panel h2 {
-  font-size: 1.15rem;
-  margin: 0 0 0.3rem;
+  font-size: 1.2rem;
+  margin: 0 0 0.7rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--line);
+  letter-spacing: -0.01em;
+}
+
+/* Hint đi ngay dưới heading đã có kẻ -> kéo sát lại cho gọn */
+.contract-panel .panel-hint {
+  margin-top: -0.4rem;
 }
 
 .panel-hint {
@@ -1142,9 +1145,13 @@ h1, h2, h3 {
     grid-template-columns: 1fr;
   }
   .score-card {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    justify-items: center;
     text-align: center;
+    gap: 1.2rem;
   }
+  .score-verdict { order: 2; }
+  .score-gauge { order: 1; }
   .score-badges {
     justify-content: center;
   }
