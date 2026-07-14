@@ -17,6 +17,8 @@ services:
         value: "5432"
       - key: DB_NAME
         sync: false
+      - key: DB_PARAMS
+        value: "?sslmode=require"     # Neon bắt buộc SSL
       - key: DB_USER
         sync: false
       - key: DB_PASSWORD

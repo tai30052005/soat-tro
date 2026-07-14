@@ -6,7 +6,9 @@ spring:
   # Dùng biến môi trường với giá trị mặc định (localhost) để chạy local;
   # khi chạy bằng Docker Compose các biến này sẽ được override.
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:soattro}
+    # DB_PARAMS: tham số kết nối nối thêm vào URL. Local để trống (Docker Postgres
+    # không bật SSL). Khi deploy Neon: đặt DB_PARAMS=?sslmode=require (Neon bắt buộc SSL).
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:soattro}${DB_PARAMS:}
     username: ${DB_USER:soattro}
     password: ${DB_PASSWORD:soattro}
     driver-class-name: org.postgresql.Driver
