@@ -1,7 +1,8 @@
 /* Hallmark · redesign(home) · macrostructure: Asymmetric Hero (left-bias) · tone: tin cậy/editorial-warm
  * Hallmark · redesign(result) · macrostructure: Report/Verdict Document · giữ theme app (teal · Fraunces+Inter · màu rủi ro)
  * type: Fraunces (display) + Inter (body) · anchor hue: teal (~200°) · pre-emit critique: P5 H5 E5 S4 R5 V5
- * scope: trang chủ + trang kết quả + hệ type toàn app; giữ nguyên loader/nav. */
+ * Hallmark · sync(app) · lịch sử + auth + failed theo cùng giọng: bỏ thẻ-nổi/đổ-bóng, dùng kẻ-đỉnh + hairline ledger
+ * scope: toàn app (chủ · kết quả · lịch sử · auth · hệ type); giữ nguyên loader/nav. */
 /* Soát Trọ — UX chặng 5. Bảng màu ấm, tập trung vào trang kết quả có cấu trúc. */
 :root {
   --ink: #1f2937;
@@ -981,9 +982,9 @@ h1, h2, h3 {
   text-align: center;
   background: var(--card);
   border: 1px solid var(--red-line);
-  border-radius: 14px;
+  border-top: 3px solid var(--red);
+  border-radius: 12px;
   padding: 2rem;
-  box-shadow: var(--shadow);
 }
 
 .failed-card h2 {
@@ -1014,9 +1015,9 @@ h1, h2, h3 {
   max-width: 24rem;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-top: 3px solid var(--accent);
+  border-radius: 12px;
   padding: 2rem;
-  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
@@ -1074,8 +1075,11 @@ h1, h2, h3 {
 }
 
 .page-narrow h1 {
-  font-size: 1.6rem;
+  font-size: clamp(1.6rem, 3.4vw, 2.2rem);
+  letter-spacing: -0.01em;
   margin: 0 0 1.2rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--line);
 }
 
 .empty-history {
@@ -1088,43 +1092,32 @@ h1, h2, h3 {
   align-items: center;
 }
 
+/* Lịch sử = sổ kê báo cáo: các dòng ngăn bằng hairline, accent trái theo rủi ro.
+   Không thẻ nổi, không sọc-trái-bo-góc như bản cũ. */
 .history-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
+  border-top: 1px solid var(--line);
 }
 
 .history-item {
   display: flex;
   align-items: center;
   gap: 1rem;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-left: 5px solid var(--muted);
-  border-radius: 12px;
-  padding: 0.9rem 1.1rem;
+  padding: 1rem 0.6rem 1rem 1rem;
   text-decoration: none;
   color: var(--ink);
-  position: relative;
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid transparent;
+  transition: background 0.15s ease, border-left-color 0.15s ease;
 }
 
-/* Shadow hover đặt lên ::after và fade bằng opacity (GPU) thay vì animate box-shadow */
-.history-item::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  pointer-events: none;
-}
-
-.history-item:hover::after {
-  opacity: 1;
+/* Hover chỉ trên thiết bị có con trỏ thật (tránh false-positive khi chạm) */
+@media (hover: hover) and (pointer: fine) {
+  .history-item:hover {
+    background: var(--card);
+  }
 }
 
 .history-item.risk-red { border-left-color: var(--red); }
@@ -1137,6 +1130,7 @@ h1, h2, h3 {
   height: 3rem;
   border-radius: 50%;
   background: var(--bg);
+  color: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1144,6 +1138,11 @@ h1, h2, h3 {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
+
+/* Điểm nhuốm màu theo rủi ro — đồng bộ với masthead trang kết quả */
+.history-item.risk-red .hi-score { color: var(--red); background: var(--red-bg); }
+.history-item.risk-yellow .hi-score { color: var(--yellow); background: var(--yellow-bg); }
+.history-item.risk-green .hi-score { color: var(--green); background: var(--green-bg); }
 
 .hi-body {
   flex: 1;
