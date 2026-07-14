@@ -93,9 +93,45 @@ export function ResultView({ analysis, demo = false, files = null }) {
   // Số liệu cho dòng badge tổng hợp dưới verdict.
   const redCount = (analysis.findings || []).filter((f) => f.riskLevel === 'RED').length
   const yellowCount = (analysis.findings || []).filter((f) => f.riskLevel === 'YELLOW').length
-  const gaugeDash = analysis.safetyScore != null
-    ? (analysis.safetyScore / 100) * GAUGE_CIRC
-    : 0
+  const finalScore = analysis.safetyScore
+  const gaugeDash = finalScore != null ? (finalScore / 100) * GAUGE_CIRC : 0
+
+  // Khoảnh khắc trả kết quả: cung tròn "chạy" từ 0 -> điểm và số đếm lên khi mount.
+  // Tôn trọng prefers-reduced-motion: hiện thẳng giá trị cuối, không hoạt cảnh.
+  const reduce =
+    typeof window !== 'undefined' &&
+    window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const [armed, setArmed] = useState(false)
+  const [shownScore, setShownScore] = useState(reduce || finalScore == null ? finalScore : 0)
+
+  useEffect(() => {
+    if (reduce) {
+      setArmed(true)
+      return undefined
+    }
+    // Bật ở frame sau để trình duyệt kịp vẽ trạng thái đầu (cung ẩn) rồi mới transition.
+    const raf = requestAnimationFrame(() => setArmed(true))
+    return () => cancelAnimationFrame(raf)
+  }, [reduce])
+
+  useEffect(() => {
+    if (reduce || finalScore == null) {
+      setShownScore(finalScore)
+      return undefined
+    }
+    let raf
+    const start = performance.now()
+    const dur = 900 // khớp thời lượng transition của cung tròn
+    const step = (now) => {
+      const t = Math.min((now - start) / dur, 1)
+      const eased = 1 - Math.pow(1 - t, 3) // easeOutCubic — cùng "chất" với curve của cung
+      setShownScore(Math.round(finalScore * eased))
+      if (t < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [reduce, finalScore])
 
   // Ảnh gốc để xem lại — dựng URL tạm ngay trong trình duyệt, KHÔNG tải lên server.
   // Chỉ ảnh (PDF không xem trước được ở đây). Thu hồi URL khi rời trang để không rò bộ nhớ.
@@ -128,12 +164,13 @@ export function ResultView({ analysis, demo = false, files = null }) {
               <circle
                 className="gauge-arc"
                 cx="59" cy="59" r="50"
-                strokeDasharray={`${gaugeDash.toFixed(1)} ${GAUGE_CIRC.toFixed(1)}`}
+                strokeDasharray={GAUGE_CIRC.toFixed(1)}
+                strokeDashoffset={(armed ? GAUGE_CIRC - gaugeDash : GAUGE_CIRC).toFixed(1)}
               />
             )}
           </svg>
           <div className="gauge-val">
-            <span className="score-num">{analysis.safetyScore ?? '—'}</span>
+            <span className="score-num">{shownScore ?? '—'}</span>
             <span className="score-den">/100</span>
           </div>
         </div>

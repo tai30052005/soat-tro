@@ -235,6 +235,18 @@ body {
   font-size: 0.9rem;
   max-width: 30rem;
   margin: 0 auto;
+  /* Lỗi bật vào mềm thay vì snap (element mount mới mỗi lần có lỗi) */
+  animation: err-in 0.15s ease-out;
+}
+
+@keyframes err-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes err-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Hàng 2 nút CTA: soát thật + xem demo */
@@ -575,6 +587,8 @@ body {
   stroke: var(--muted);
   stroke-width: 11;
   stroke-linecap: round;
+  /* Cung chạy từ 0 -> điểm khi mount (offset đặt inline theo React state) */
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .score-card.risk-red .gauge-arc { stroke: var(--red); }
@@ -1112,6 +1126,14 @@ body {
   }
   .img-strip a:hover img {
     transform: none;
+  }
+  /* Vòng điểm hiện thẳng ở giá trị cuối, không "chạy" */
+  .gauge-arc {
+    transition: none !important;
+  }
+  /* Lỗi vẫn fade nhẹ (gentler, not zero) nhưng bỏ chuyển động dọc */
+  .form-error {
+    animation: err-fade 0.15s ease !important;
   }
 }
 
