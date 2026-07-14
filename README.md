@@ -13,9 +13,7 @@
 
 ⚠️ Soát Trọ là **công cụ tham khảo, không phải tư vấn pháp lý**.
 
-<!-- 📸 Ảnh minh hoạ: chạy app → mở "Thử với hợp đồng mẫu" → chụp trang kết quả,
-     lưu vào docs/screenshot-result.png rồi bỏ comment dòng dưới. -->
-<!-- ![Trang kết quả Soát Trọ](docs/screenshot-result.png) -->
+![Trang kết quả Soát Trọ](docs/screenshot-result.jpeg)
 
 ## Stack
 
