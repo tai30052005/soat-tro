@@ -898,7 +898,7 @@ h1, h2, h3 {
   color: var(--green);
 }
 
-/* ③ Checklist */
+/* ③ Checklist — đọc như bảng kê báo cáo: mỗi mục một dòng, kẻ ngăn hairline */
 .check-list {
   list-style: none;
   padding: 0;
@@ -906,9 +906,16 @@ h1, h2, h3 {
 }
 
 .check-list li {
-  padding: 0.3rem 0;
-  display: flex;
-  gap: 0.5rem;
+  padding: 0.5rem 0;
+  display: grid;
+  grid-template-columns: 1.1rem 1fr;
+  gap: 0.6rem;
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+}
+
+.check-list li:last-child {
+  border-bottom: none;
 }
 
 .check-list .mark {
@@ -933,14 +940,33 @@ h1, h2, h3 {
   color: var(--muted);
 }
 
-/* ④ Câu hỏi */
+/* ④ Câu hỏi — đánh số 01/02 kiểu báo cáo (Fraunces teal, đồng bộ với bước 01→02→03 ở trang chủ) */
 .questions {
-  padding-left: 1.2rem;
-  margin: 0.5rem 0 1rem;
+  list-style: none;
+  padding-left: 0;
+  margin: 0.5rem 0 1.2rem;
+  counter-reset: q;
 }
 
 .questions li {
-  padding: 0.35rem 0;
+  counter-increment: q;
+  display: grid;
+  grid-template-columns: 1.7rem 1fr;
+  gap: 0.7rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.questions li:last-child {
+  border-bottom: none;
+}
+
+.questions li::before {
+  content: counter(q, decimal-leading-zero);
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  line-height: 1.5;
 }
 
 .q-actions {
