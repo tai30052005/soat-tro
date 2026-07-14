@@ -2,6 +2,10 @@
 
 [![CI](https://github.com/tai30052005/soat-tro/actions/workflows/ci.yml/badge.svg)](https://github.com/tai30052005/soat-tro/actions/workflows/ci.yml)
 
+**🌐 Dùng thử ngay: [soat-tro.vercel.app](https://soat-tro.vercel.app)** — bấm *"Thử với hợp đồng mẫu"* để xem kết quả ngay, không cần đăng nhập.
+
+> ⏳ Backend chạy trên free tier (Render) nên **lần mở đầu tiên có thể chờ ~50 giây** để service "thức dậy", các lần sau nhanh.
+
 > Chụp/upload hợp đồng thuê trọ → 30 giây sau biết: điều khoản nào rủi ro (🔴🟡🟢),
 > hợp đồng **thiếu** điều khoản gì, và cần hỏi lại chủ trọ câu gì — không cần gõ một chữ nào.
 >
@@ -60,6 +64,8 @@ cd frontend && npm run build   # frontend: kiểm tra build
 ```
 
 ## Deploy (0đ)
+
+> **Bản đang chạy:** Frontend [soat-tro.vercel.app](https://soat-tro.vercel.app) · Backend [soat-tro-api.onrender.com](https://soat-tro-api.onrender.com) (health: `/api/health`) · DB Neon Postgres 17.
 
 | Thành phần | Nền tảng | Cấu hình |
 |---|---|---|
