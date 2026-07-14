@@ -3,6 +3,13 @@
 > AI soát hợp đồng thuê trọ: chụp/upload hợp đồng, ~30 giây sau biết điều khoản nào rủi ro (🔴🟡🟢), hợp đồng còn **thiếu** gì và nên hỏi lại chủ trọ câu nào — không cần gõ một chữ.
 
 [![CI](https://github.com/tai30052005/soat-tro/actions/workflows/ci.yml/badge.svg)](https://github.com/tai30052005/soat-tro/actions/workflows/ci.yml)
+&nbsp;
+![Java](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3-6DB33F?logo=springboot&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![Gemini](https://img.shields.io/badge/Google%20Gemini-8E75B2?logo=googlegemini&logoColor=white)
 
 **🌐 Dùng thử: [soat-tro.vercel.app](https://soat-tro.vercel.app)** — bấm *“Xem thử hợp đồng mẫu”* để xem kết quả ngay, không cần đăng nhập.
 
@@ -11,6 +18,24 @@
 ![Trang kết quả Soát Trọ](docs/screenshot-result.jpeg)
 
 > ⚠️ Soát Trọ là **công cụ tham khảo, không phải tư vấn pháp lý**.
+
+## Mục lục
+
+- [Bối cảnh](#bối-cảnh)
+- [Tính năng](#tính-năng)
+- [Công nghệ](#công-nghệ)
+- [Kiến trúc AI](#kiến-trúc-ai)
+- [Bắt đầu](#bắt-đầu)
+- [Tài liệu API](#tài-liệu-api)
+- [Biến môi trường](#biến-môi-trường)
+- [Triển khai](#triển-khai)
+- [Cấu trúc dự án](#cấu-trúc-dự-án)
+- [Tác giả](#tác-giả)
+- [Giấy phép](#giấy-phép)
+
+## Bối cảnh
+
+Người thuê trọ — nhất là sinh viên, người mới đi làm — thường ký hợp đồng mà không đọc kỹ, rồi mới phát hiện những điều khoản bất lợi: giá điện cao hơn quy định, mất cọc vô lý, chủ được đơn phương chấm dứt, tự ý tăng giá… Soát Trọ giúp phát hiện các rủi ro đó **trước khi ký**, chỉ từ một tấm ảnh chụp hợp đồng, và giải thích bằng ngôn ngữ dễ hiểu kèm căn cứ pháp lý.
 
 ## Tính năng
 
@@ -32,7 +57,9 @@
 | AI | Google Gemini (Vision + phân tích văn bản) |
 | Hạ tầng | Docker Compose, GitHub Actions (CI), Vercel + Render + Neon (triển khai miễn phí) |
 
-## Kiến trúc AI — pipeline 3 bước
+## Kiến trúc AI
+
+Pipeline 3 bước, trong đó bước quyết định độ tin cậy là **code thuần, không phải AI**:
 
 ```
 Ảnh/PDF ─▶ [1] Gemini Vision: bóc tách điều khoản, phân loại vào TAXONOMY cố định (~16 loại)
@@ -86,7 +113,35 @@ cd frontend && npm run build    # frontend: kiểm tra build
 ## Tài liệu API
 
 Khi backend chạy, mở Swagger UI tại `/swagger-ui.html` (vd `http://localhost:8081/swagger-ui.html`).
-Health check: `GET /api/health`.
+
+| Method | Endpoint | Đăng nhập | Mô tả |
+|---|---|:---:|---|
+| `POST` | `/api/analyses` | không | Tạo phân tích từ ảnh/PDF (multipart, tham số `files`) |
+| `GET` | `/api/analyses/sample` | không | Kết quả hợp đồng mẫu (không gọi Gemini) |
+| `GET` | `/api/analyses/{id}` | không | Lấy kết quả theo id |
+| `GET` | `/api/analyses` | token tuỳ chọn | Lịch sử soát (lọc theo người dùng nếu có token) |
+| `POST` | `/api/auth/register` | không | Đăng ký tài khoản |
+| `POST` | `/api/auth/login` | không | Đăng nhập, trả JWT |
+| `GET` | `/api/health` | không | Health check |
+
+## Biến môi trường
+
+| Biến | Mặc định | Mô tả |
+|---|---|---|
+| `DB_HOST` | `localhost` | Host PostgreSQL |
+| `DB_PORT` | `5432` | Cổng PostgreSQL |
+| `DB_NAME` | `soattro` | Tên database |
+| `DB_PARAMS` | *(trống)* | Tham số nối thêm vào URL, vd `?sslmode=require` cho Neon |
+| `DB_USER` | `soattro` | User DB |
+| `DB_PASSWORD` | `soattro` | Mật khẩu DB |
+| `JWT_SECRET` | *(khoá dev)* | Khoá ký JWT (≥ 32 ký tự) — **bắt buộc đặt khi deploy** |
+| `JWT_EXPIRATION_MS` | `86400000` | Thời hạn token (24 giờ) |
+| `CORS_ALLOWED_ORIGINS` | *(các cổng localhost)* | Danh sách origin frontend được phép gọi API |
+| `GEMINI_API_KEY` | *(trống)* | Khoá Google Gemini — để trống thì tính năng AI tự tắt |
+| `GEMINI_MODEL` | `gemini-3-flash-preview` | Model Gemini dùng để đọc & phân tích |
+| `PORT` | `8080` | Cổng HTTP của backend (Render tự cấp) |
+
+> Bí mật (khoá Gemini, mật khẩu DB, `JWT_SECRET`) chỉ đặt trong dashboard từng nền tảng — **không commit vào repo**.
 
 ## Triển khai (miễn phí)
 
@@ -103,8 +158,6 @@ Các bước:
 1. **Neon** — tạo database, tắt *connection pooling*, copy chuỗi kết nối.
 2. **Render** — *New → Blueprint* trỏ vào repo. Điền `DB_HOST/DB_NAME/DB_USER/DB_PASSWORD` (từ Neon), `DB_PARAMS=?sslmode=require`, `GEMINI_API_KEY`, `CORS_ALLOWED_ORIGINS` = domain Vercel. `JWT_SECRET` để Render tự sinh.
 3. **Vercel** — import `frontend/`, đặt `VITE_API_URL` = URL service Render (vd `https://soat-tro-api.onrender.com`), deploy.
-
-> Bí mật (khoá Gemini, mật khẩu DB) chỉ đặt trong dashboard từng nền tảng — **không commit vào repo**.
 
 ## Cấu trúc dự án
 
@@ -123,6 +176,10 @@ soat-tro/
 ├── SPEC.md          # đặc tả & lộ trình chi tiết
 ├── Dockerfile · docker-compose.yml · render.yaml · vercel.json
 ```
+
+## Tác giả
+
+**Võ Minh Tài** — [GitHub](https://github.com/tai30052005)
 
 ## Giấy phép
 
