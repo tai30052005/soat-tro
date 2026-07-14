@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { motion, animate, useReducedMotion } from 'motion/react'
 import { useLocation, useParams, Link } from 'react-router-dom'
 import client from '../api/client.js'
 import ScanLoader from '../components/ScanLoader.jsx'
@@ -97,40 +98,22 @@ export function ResultView({ analysis, demo = false, files = null }) {
   const gaugeDash = finalScore != null ? (finalScore / 100) * GAUGE_CIRC : 0
 
   // Khoảnh khắc trả kết quả: cung tròn "chạy" từ 0 -> điểm và số đếm lên khi mount.
+  // Cùng một spring (motion) lo cả cung lẫn số để hai thứ khớp nhịp tuyệt đối.
   // Tôn trọng prefers-reduced-motion: hiện thẳng giá trị cuối, không hoạt cảnh.
-  const reduce =
-    typeof window !== 'undefined' &&
-    window.matchMedia &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  const [armed, setArmed] = useState(false)
+  const reduce = useReducedMotion()
   const [shownScore, setShownScore] = useState(reduce || finalScore == null ? finalScore : 0)
-
-  useEffect(() => {
-    if (reduce) {
-      setArmed(true)
-      return undefined
-    }
-    // Bật ở frame sau để trình duyệt kịp vẽ trạng thái đầu (cung ẩn) rồi mới transition.
-    const raf = requestAnimationFrame(() => setArmed(true))
-    return () => cancelAnimationFrame(raf)
-  }, [reduce])
 
   useEffect(() => {
     if (reduce || finalScore == null) {
       setShownScore(finalScore)
       return undefined
     }
-    let raf
-    const start = performance.now()
-    const dur = 900 // khớp thời lượng transition của cung tròn
-    const step = (now) => {
-      const t = Math.min((now - start) / dur, 1)
-      const eased = 1 - Math.pow(1 - t, 3) // easeOutCubic — cùng "chất" với curve của cung
-      setShownScore(Math.round(finalScore * eased))
-      if (t < 1) raf = requestAnimationFrame(step)
-    }
-    raf = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(raf)
+    const controls = animate(0, finalScore, {
+      duration: 0.9,
+      ease: [0.23, 1, 0.32, 1], // easeOutCubic mạnh — cùng "chất" với curve của cung
+      onUpdate: (v) => setShownScore(Math.round(v)),
+    })
+    return () => controls.stop()
   }, [reduce, finalScore])
 
   // Ảnh gốc để xem lại — dựng URL tạm ngay trong trình duyệt, KHÔNG tải lên server.
@@ -161,11 +144,13 @@ export function ResultView({ analysis, demo = false, files = null }) {
           <svg viewBox="0 0 118 118" aria-hidden="true">
             <circle className="gauge-track" cx="59" cy="59" r="50" />
             {gaugeDash > 0 && (
-              <circle
+              <motion.circle
                 className="gauge-arc"
                 cx="59" cy="59" r="50"
                 strokeDasharray={GAUGE_CIRC.toFixed(1)}
-                strokeDashoffset={(armed ? GAUGE_CIRC - gaugeDash : GAUGE_CIRC).toFixed(1)}
+                initial={{ strokeDashoffset: reduce ? GAUGE_CIRC - gaugeDash : GAUGE_CIRC }}
+                animate={{ strokeDashoffset: GAUGE_CIRC - gaugeDash }}
+                transition={reduce ? { duration: 0 } : { type: 'spring', duration: 0.9, bounce: 0 }}
               />
             )}
           </svg>
@@ -250,13 +235,17 @@ export function ResultView({ analysis, demo = false, files = null }) {
 
 function ClauseBlock({ block, index = 0 }) {
   const [open, setOpen] = useState(false)
+  const reduce = useReducedMotion()
   const meta = RISK_META[block.risk] || RISK_META.NONE
   const hasDetail = block.findings.length > 0
-  // Reveal "đèn quét tới đâu hiện tới đó": các block hiện lần lượt, delay tối đa ~1s.
+  // Reveal "đèn quét tới đâu hiện tới đó": các block hiện lần lượt (stagger cap ~12 block
+  // để không lê thê), spring nhẹ. Reduced-motion -> hiện thẳng.
   return (
-    <div
-      className={`clause reveal ${meta.className} ${open ? 'open' : ''}`}
-      style={{ animationDelay: `${Math.min(index, 20) * 0.05}s` }}
+    <motion.div
+      className={`clause ${meta.className} ${open ? 'open' : ''}`}
+      initial={reduce ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index, 12) * 0.04, duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
     >
       <button
         className="clause-head"
@@ -279,7 +268,7 @@ function ClauseBlock({ block, index = 0 }) {
           ))}
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }
 

@@ -656,8 +656,7 @@ h1, h2, h3 {
   stroke: var(--muted);
   stroke-width: 11;
   stroke-linecap: round;
-  /* Cung chạy từ 0 -> điểm khi mount (offset đặt inline theo React state) */
-  transition: stroke-dashoffset 0.9s cubic-bezier(0.23, 1, 0.32, 1);
+  /* Cung chạy từ 0 -> điểm khi mount — do motion (spring) điều khiển offset inline. */
 }
 
 .score-card.risk-red .gauge-arc { stroke: var(--red); }
@@ -830,19 +829,7 @@ h1, h2, h3 {
 .clause.risk-green { border-left-color: var(--green); background: var(--green-bg); }
 .clause.risk-none { border-left-color: #cbd5e1; background: var(--card); }
 
-/* Reveal "đèn quét tới đâu hiện tới đó" — delay đặt inline theo thứ tự block */
-.clause.reveal {
-  opacity: 0;
-  transform: translateY(10px);
-  animation: rise 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-}
-
-@keyframes rise {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* Reveal "đèn quét tới đâu hiện tới đó" — stagger do motion điều khiển (Result.jsx). */
 
 .clause-head {
   width: 100%;
@@ -1191,11 +1178,7 @@ h1, h2, h3 {
   .sl.flag-red2 {
     animation: none !important;
   }
-  .clause.reveal {
-    opacity: 1;
-    transform: none;
-    animation: none !important;
-  }
+  /* Clause stagger & vòng điểm do motion lo (useReducedMotion -> hiện thẳng). */
   .btn-primary,
   .btn-primary:hover,
   .btn-primary:active {
@@ -1203,10 +1186,6 @@ h1, h2, h3 {
   }
   .img-strip a:hover img {
     transform: none;
-  }
-  /* Vòng điểm hiện thẳng ở giá trị cuối, không "chạy" */
-  .gauge-arc {
-    transition: none !important;
   }
   /* Lỗi vẫn fade nhẹ (gentler, not zero) nhưng bỏ chuyển động dọc */
   .form-error {
