@@ -39,7 +39,8 @@ export default function ScanLoader({ messages = DEFAULT_MSGS, sub }) {
         <div className="sl w55" />
         <div className="beam" />
       </div>
-      <p className="progress-msg">{messages[idx]}</p>
+      {/* key=idx để remount khi đổi câu -> animation msg-in chạy lại, chữ fade vào */}
+      <p className="progress-msg" key={idx}>{messages[idx]}</p>
       {sub && <p className="progress-sub">{sub}</p>}
     </div>
   )

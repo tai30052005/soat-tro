@@ -326,17 +326,27 @@ body {
   cursor: pointer;
   text-decoration: none;
   box-shadow: 0 6px 18px rgba(13, 148, 136, 0.3);
-  transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+  /* Gradient không interpolate được bằng transition background -> làm tối bằng filter */
+  transition: filter 0.15s ease, transform 0.12s ease-out, box-shadow 0.15s ease;
 }
 
-.btn-primary:hover {
-  background: linear-gradient(180deg, #0f9d90, #0c8c7f);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(13, 148, 136, 0.38);
+/* Hover chỉ dành cho chuột thật — trên cảm ứng tap sẽ dính "hover ma" */
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover {
+    filter: brightness(0.96);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(13, 148, 136, 0.38);
+  }
+}
+
+/* Phản hồi khi nhấn: nút "lún" nhẹ, hoạt động cả trên cảm ứng */
+.btn-primary:active {
+  transform: scale(0.98);
 }
 
 .btn-primary:disabled {
   background: #9ca3af;
+  filter: none;
   box-shadow: none;
   transform: none;
   cursor: not-allowed;
@@ -433,8 +443,10 @@ body {
   position: absolute;
   left: 0;
   right: 0;
+  top: 0;
   height: 46px;
-  top: -18%;
+  /* Quét bằng transform (chạy trên GPU) — animate `top` sẽ ép layout lại mỗi frame */
+  transform: translateY(-60px);
   background: linear-gradient(
     180deg,
     rgba(13, 148, 136, 0) 0%,
@@ -446,9 +458,9 @@ body {
 }
 
 @keyframes sweep {
-  0% { top: -18%; }
-  92% { top: 104%; }
-  100% { top: 104%; }
+  0% { transform: translateY(-60px); }
+  92% { transform: translateY(320px); }
+  100% { transform: translateY(320px); }
 }
 
 .sl.flag-red { animation: ignite-red 3.4s linear infinite; }
@@ -478,6 +490,13 @@ body {
   font-weight: 600;
   margin: 1.4rem 0 0;
   color: var(--accent-dark);
+  /* Fade nhẹ khi đổi thông điệp (remount bằng key) — tránh swap chữ giật cục */
+  animation: msg-in 0.15s ease;
+}
+
+@keyframes msg-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .progress-sub {
@@ -673,10 +692,10 @@ body {
 /* Ảnh gốc người dùng đã tải (xem lại phía trình duyệt, không lưu server) */
 .uploaded-images {
   margin: 0 0 1rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 0.5rem 0.8rem;
-  background: var(--bg-soft, rgba(0, 0, 0, 0.02));
+  background: var(--bg);
 }
 .uploaded-images summary {
   cursor: pointer;
@@ -694,15 +713,17 @@ body {
   height: 160px;
   width: auto;
   max-width: 100%;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   object-fit: cover;
   display: block;
-  transition: transform 0.12s ease;
+  transition: transform 0.12s ease, border-color 0.12s ease;
 }
-.img-strip a:hover img {
-  transform: scale(1.02);
-  border-color: var(--brand, #16a34a);
+@media (hover: hover) and (pointer: fine) {
+  .img-strip a:hover img {
+    transform: scale(1.02);
+    border-color: var(--accent);
+  }
 }
 
 /* ② Điều khoản tô màu */
@@ -728,7 +749,7 @@ body {
 .clause.reveal {
   opacity: 0;
   transform: translateY(10px);
-  animation: rise 0.45s ease-out forwards;
+  animation: rise 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
 
 @keyframes rise {
@@ -985,11 +1006,23 @@ body {
   padding: 0.9rem 1.1rem;
   text-decoration: none;
   color: var(--ink);
-  transition: box-shadow 0.15s;
+  position: relative;
 }
 
-.history-item:hover {
+/* Shadow hover đặt lên ::after và fade bằng opacity (GPU) thay vì animate box-shadow */
+.history-item::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 12px;
   box-shadow: var(--shadow);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.history-item:hover::after {
+  opacity: 1;
 }
 
 .history-item.risk-red { border-left-color: var(--red); }
@@ -1073,7 +1106,11 @@ body {
     animation: none !important;
   }
   .btn-primary,
-  .btn-primary:hover {
+  .btn-primary:hover,
+  .btn-primary:active {
+    transform: none;
+  }
+  .img-strip a:hover img {
     transform: none;
   }
 }

@@ -215,11 +215,11 @@ function ClauseBlock({ block, index = 0 }) {
   const [open, setOpen] = useState(false)
   const meta = RISK_META[block.risk] || RISK_META.NONE
   const hasDetail = block.findings.length > 0
-  // Reveal "đèn quét tới đâu hiện tới đó": các block hiện lần lượt, delay tối đa ~1.2s.
+  // Reveal "đèn quét tới đâu hiện tới đó": các block hiện lần lượt, delay tối đa ~1s.
   return (
     <div
       className={`clause reveal ${meta.className} ${open ? 'open' : ''}`}
-      style={{ animationDelay: `${Math.min(index, 10) * 0.12}s` }}
+      style={{ animationDelay: `${Math.min(index, 20) * 0.05}s` }}
     >
       <button
         className="clause-head"
