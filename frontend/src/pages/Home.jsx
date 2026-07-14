@@ -65,82 +65,90 @@ export default function Home() {
   return (
     <div className="home">
       <header className="hero">
-        <h1>
-          Ký hợp đồng trọ?
-          <br />
-          <span className="hl">Soát trước đã.</span>
-        </h1>
-        <p className="tagline">
-          Chụp hợp đồng thuê trọ — 30 giây sau biết điều khoản nào rủi ro,
-          hợp đồng <strong>thiếu</strong> gì, và cần hỏi lại chủ trọ câu gì.
-        </p>
-
-        <div
-          className={`dropzone ${files.length ? 'has-files' : ''}`}
-          onClick={() => inputRef.current?.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={onDrop}
-          role="button"
-          tabIndex={0}
-        >
-          <input
-            ref={inputRef}
-            type="file"
-            accept={ACCEPT}
-            multiple
-            hidden
-            onChange={(e) => addFiles(e.target.files)}
-          />
-          {files.length === 0 ? (
-            <>
-              <p className="dz-icon">📄</p>
-              <p className="dz-main">Kéo thả ảnh/PDF vào đây, hoặc bấm để chọn</p>
-              <p className="dz-hint">Chụp nhiều trang cũng được · JPG/PNG/WEBP/PDF · tối đa {MAX_FILES} ảnh</p>
-            </>
-          ) : (
-            <>
-              <p className="dz-count">Đã chọn {files.length} file:</p>
-              <ul className="file-list">
-                {files.map((f, i) => (
-                  <li key={i}>📎 {f.name}</li>
-                ))}
-              </ul>
-              <p className="dz-hint">Bấm để chọn lại</p>
-            </>
-          )}
+        <div className="hero-copy">
+          <h1>
+            Ký hợp đồng trọ?
+            <br />
+            <span className="hl">Soát trước đã.</span>
+          </h1>
+          <p className="tagline">
+            Chụp hợp đồng thuê trọ — khoảng 30 giây sau biết điều khoản nào rủi ro,
+            hợp đồng <strong>thiếu</strong> gì, và cần hỏi lại chủ trọ câu gì.
+          </p>
+          <ul className="hero-assur">
+            <li>Ảnh hợp đồng không rời khỏi máy bạn — không lưu trên máy chủ</li>
+            <li>Đối chiếu với các điều khoản thường bị gài & mục còn thiếu</li>
+            <li>Miễn phí, không cần đăng nhập</li>
+          </ul>
         </div>
 
-        {error && <p className="form-error">{error}</p>}
+        <div className="hero-panel">
+          <div
+            className={`dropzone ${files.length ? 'has-files' : ''}`}
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={onDrop}
+            role="button"
+            tabIndex={0}
+          >
+            <input
+              ref={inputRef}
+              type="file"
+              accept={ACCEPT}
+              multiple
+              hidden
+              onChange={(e) => addFiles(e.target.files)}
+            />
+            {files.length === 0 ? (
+              <>
+                <p className="dz-main">Kéo thả ảnh/PDF vào đây, hoặc bấm để chọn</p>
+                <p className="dz-hint">Nhiều trang cũng được · JPG/PNG/WEBP/PDF · tối đa {MAX_FILES} ảnh</p>
+              </>
+            ) : (
+              <>
+                <p className="dz-count">Đã chọn {files.length} file:</p>
+                <ul className="file-list">
+                  {files.map((f, i) => (
+                    <li key={i}>{f.name}</li>
+                  ))}
+                </ul>
+                <p className="dz-hint">Bấm để chọn lại</p>
+              </>
+            )}
+          </div>
 
-        <div className="cta-row">
-          <button className="btn-primary big" onClick={submit} disabled={files.length === 0}>
-            Soát hợp đồng
-          </button>
-          <Link className="btn-secondary big" to="/demo">
-            👀 Xem thử với hợp đồng mẫu
-          </Link>
+          {error && <p className="form-error">{error}</p>}
+
+          <div className="cta-row">
+            <button className="btn-primary big" onClick={submit} disabled={files.length === 0}>
+              Soát hợp đồng
+            </button>
+            <Link className="btn-secondary big" to="/demo">
+              Xem thử hợp đồng mẫu
+            </Link>
+          </div>
         </div>
       </header>
 
       <section className="steps" aria-label="Cách hoạt động">
         <div className="step">
-          <div className="step-ico" aria-hidden="true">📷</div>
+          <span className="step-n">01</span>
           <h3>Chụp hợp đồng</h3>
           <p>Ảnh điện thoại hoặc PDF, nhiều trang cũng được</p>
         </div>
         <div className="step">
-          <div className="step-ico" aria-hidden="true">🤖</div>
-          <h3>AI đối chiếu 14 điểm</h3>
+          <span className="step-n">02</span>
+          <h3>AI đối chiếu điều khoản</h3>
           <p>Giá điện nước, tiền cọc, quyền đuổi, tăng giá…</p>
         </div>
         <div className="step">
-          <div className="step-ico" aria-hidden="true">✅</div>
-          <h3>Nhận điểm + câu hỏi</h3>
+          <span className="step-n">03</span>
+          <h3>Nhận điểm & câu hỏi</h3>
           <p>Điểm an toàn, mục còn thiếu, câu hỏi cầm đi hỏi chủ trọ</p>
         </div>
       </section>
 
-      <footer className="footband">⚖️ Soát Trọ là công cụ tham khảo, không phải tư vấn pháp lý.</footer>
+      <footer className="footband">Soát Trọ là công cụ tham khảo, không phải tư vấn pháp lý.</footer>
     </div>
   )
 }
